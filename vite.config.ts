@@ -13,7 +13,7 @@ export default defineConfig({
     rollupOptions: {
       external: [/^drizzle-orm(?:\/.*)?$/],
     },
-    sourcemap: true,
+    sourcemap: false,
   },
   plugins: [
     dts({
