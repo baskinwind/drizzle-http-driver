@@ -14,8 +14,8 @@ const createTransactionId = () => {
 
 export class DrizzleProxyPool {
   constructor(readonly config: DrizzleProxyConfig) {
-    if (!config.endpoint || !config.key || !config.token) {
-      throw new Error('Drizzle proxy endpoint, key and token are required');
+    if (!config.endpoint || !config.token || !config.key) {
+      throw new Error('Drizzle proxy endpoint, token and key are required');
     }
   }
 

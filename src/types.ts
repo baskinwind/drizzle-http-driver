@@ -14,6 +14,7 @@ export interface DrizzleProxyQueryConfig {
 export type DrizzleProxyQuery = DrizzleProxyQueryConfig | string;
 
 export interface DrizzleProxyRequest {
+  /** Database connection config key within the authorized tenant. */
   key: string;
   method: DrizzleProxyQueryMethod;
   params: unknown[];
@@ -22,6 +23,7 @@ export interface DrizzleProxyRequest {
 }
 
 export interface DrizzleProxyReleaseRequest {
+  /** Database connection config key within the authorized tenant. */
   key: string;
   transaction_id: string;
 }
@@ -58,12 +60,12 @@ export type DrizzleProxyParseResponse = (response: Response) => Promise<unknown>
 export type DrizzleProxyHeaders = HeadersInit | (() => MaybePromise<HeadersInit>);
 
 export interface DrizzleProxyConfig {
-  /** Complete URL used for query requests. */
+  /** HTTP endpoint that receives Drizzle proxy query requests. */
   endpoint: string;
-  /** Database identifier forwarded to the HTTP service. */
-  key: string;
-  /** Value written to the x-db-token request header. */
+  /** Tenant access token used to identify and authorize a tenant. Sent as x-db-token. */
   token: string | (() => MaybePromise<string>);
+  /** Key of a complete database connection config under the authorized tenant. */
+  key: string;
   /** Additional headers or an async header factory. */
   headers?: DrizzleProxyHeaders;
   /** Custom fetch implementation. Defaults to globalThis.fetch. */
