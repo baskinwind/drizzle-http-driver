@@ -32,11 +32,15 @@
     "http",
     "database"
   ],
-  "license": "MIT",
-  "engines": {
-    "node": ">=20.19"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/baskinwind/drizzle-http-driver.git"
   },
-  "packageManager": "pnpm@10.28.0",
+  "homepage": "https://github.com/baskinwind/drizzle-http-driver#readme",
+  "bugs": {
+    "url": "https://github.com/baskinwind/drizzle-http-driver/issues"
+  },
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
