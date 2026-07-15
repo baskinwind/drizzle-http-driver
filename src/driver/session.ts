@@ -1,17 +1,9 @@
-import type { WithCacheConfig } from 'drizzle-orm/cache/core/types';
 import type { Logger } from 'drizzle-orm/logger';
 import type { SelectedFieldsOrdered } from 'drizzle-orm/pg-core/query-builders/select.types';
-import type {
-  PgTransactionConfig,
-  PreparedQueryConfig,
-} from 'drizzle-orm/pg-core/session';
-import type {
-  RelationalSchemaConfig,
-  TablesRelationalConfig,
-} from 'drizzle-orm/relations';
+import type { PgTransactionConfig, PreparedQueryConfig } from 'drizzle-orm/pg-core/session';
+import type { RelationalSchemaConfig, TablesRelationalConfig } from 'drizzle-orm/relations';
 import type { Query, SQL } from 'drizzle-orm/sql';
 
-import { type Cache, NoopCache } from 'drizzle-orm/cache/core';
 import { entityKind } from 'drizzle-orm/entity';
 import { NoopLogger } from 'drizzle-orm/logger';
 import type { PgDialect } from 'drizzle-orm/pg-core/dialect';
@@ -21,15 +13,17 @@ import { sql } from 'drizzle-orm/sql';
 import { HttpPgPreparedQuery } from './prepared-query';
 import { HttpPgTransaction } from './transaction';
 
-import type {
-  DrizzleProxyPoolLike,
-  DrizzleProxyQueryResult,
-  DrizzleProxyQueryResultHKT,
-  QueryMetadata,
-} from '../types';
+import type { DrizzleProxyClientLike, DrizzleProxyQueryResult, DrizzleProxyQueryResultHKT } from '../types';
 
-export interface HttpPgSessionOptions {
-  cache?: Cache;
+interface DrizzleProxyTransactionClient extends DrizzleProxyClientLike {
+  release(): Promise<void>;
+}
+
+interface DrizzleProxySessionClient extends DrizzleProxyClientLike {
+  connect(): Promise<DrizzleProxyTransactionClient>;
+}
+
+interface HttpPgSessionOptions {
   logger?: Logger;
 }
 
@@ -47,28 +41,28 @@ const transactionConfigSql = (config: PgTransactionConfig) => {
   return sql.raw(chunks.join(' '));
 };
 
-const combineErrors = (message: string, errors: unknown[]) => {
-  return errors.length === 1 ? errors[0] : new AggregateError(errors, message);
-};
-
 export class HttpPgSession<
   TFullSchema extends Record<string, unknown>,
   TSchema extends TablesRelationalConfig,
 > extends PgSession<DrizzleProxyQueryResultHKT, TFullSchema, TSchema> {
   static readonly [entityKind] = 'HttpPgSession';
 
-  private readonly cache: Cache;
+  private readonly client: DrizzleProxySessionClient;
   private readonly logger: Logger;
+  private readonly options: HttpPgSessionOptions;
+  private readonly schema: RelationalSchemaConfig<TSchema> | undefined;
 
   constructor(
-    private readonly client: DrizzleProxyPoolLike,
+    client: DrizzleProxySessionClient,
     dialect: PgDialect,
-    private readonly schema: RelationalSchemaConfig<TSchema> | undefined,
-    private readonly options: HttpPgSessionOptions = {},
+    schema: RelationalSchemaConfig<TSchema> | undefined,
+    options: HttpPgSessionOptions = {},
   ) {
     super(dialect);
-    this.cache = options.cache ?? new NoopCache();
+    this.client = client;
     this.logger = options.logger ?? new NoopLogger();
+    this.options = options;
+    this.schema = schema;
   }
 
   prepareQuery<T extends PreparedQueryConfig = PreparedQueryConfig>(
@@ -76,20 +70,12 @@ export class HttpPgSession<
     fields: SelectedFieldsOrdered | undefined,
     _name: string | undefined,
     isResponseInArrayMode: boolean,
-    customResultMapper?: (
-      rows: unknown[][],
-      mapColumnValue?: (value: unknown) => unknown,
-    ) => T['execute'],
-    queryMetadata?: QueryMetadata,
-    cacheConfig?: WithCacheConfig,
+    customResultMapper?: (rows: unknown[][], mapColumnValue?: (value: unknown) => unknown) => T['execute'],
   ) {
     return new HttpPgPreparedQuery<T>(
       this.client,
       query,
       this.logger,
-      this.cache,
-      queryMetadata,
-      cacheConfig,
       fields,
       isResponseInArrayMode,
       customResultMapper,
@@ -112,42 +98,22 @@ export class HttpPgSession<
       session,
       this.schema,
     );
-    const errors: unknown[] = [];
-    let began = false;
-    let result: T | undefined;
 
     try {
-      await tx.execute(
-        sql`begin${config ? sql` ${transactionConfigSql(config)}` : undefined}`,
-      );
-      began = true;
-      result = await transaction(tx);
+      await tx.execute(sql`begin${config ? sql` ${transactionConfigSql(config)}` : undefined}`);
+      const result = await transaction(tx);
       await tx.execute(sql`commit`);
+      return result;
     }
     catch (error) {
-      errors.push(error);
-      if (began) {
-        try {
-          await tx.execute(sql`rollback`);
-        }
-        catch (rollbackError) {
-          errors.push(rollbackError);
-        }
+      try {
+        await client.release();
       }
+      catch (releaseError) {
+        throw new AggregateError([error, releaseError], 'Drizzle HTTP transaction and cleanup failed');
+      }
+      throw error;
     }
-
-    try {
-      await client.release();
-    }
-    catch (releaseError) {
-      errors.push(releaseError);
-    }
-
-    if (errors.length > 0) {
-      throw combineErrors('Drizzle HTTP transaction failed', errors);
-    }
-
-    return result as T;
   }
 
   override async count(query: SQL) {

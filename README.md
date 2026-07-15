@@ -10,21 +10,20 @@ pnpm add drizzle-http-driver drizzle-orm
 
 ## 创建数据库实例
 
-入口写法与 `node-postgres` driver 一致，schema、logger、casing 和 cache 等配置仍然传给
-`drizzle`：
+schema、logger 和 casing 等 Drizzle 配置仍然传给 `drizzle`：
 
 ```ts
-import { drizzle, DrizzleProxyPool } from 'drizzle-http-driver';
+import { drizzle, DrizzleProxyClient } from 'drizzle-http-driver';
 
 import * as schema from './schema';
 
-const pool = new DrizzleProxyPool({
+const client = new DrizzleProxyClient({
   endpoint: process.env.DB_PROXY_ENDPOINT!,
   token: process.env.DB_PROXY_TOKEN!,
   key: process.env.DB_PROXY_KEY!,
 });
 
-export const db = drizzle(pool, { schema });
+export const db = drizzle(client, { schema });
 ```
 
 配置按照 `endpoint → token → key` 的顺序定位数据库：
@@ -71,12 +70,12 @@ await db.transaction(async (tx) => {
 });
 ```
 
-成功时 driver 执行 `commit`，异常或 `tx.rollback()` 时执行 `rollback`。嵌套事务使用
-`savepoint`。无论事务结果如何，driver 最后都会等待 release 请求完成。
+成功时 driver 执行 `commit`；异常或 `tx.rollback()` 时调用 release 接口，由代理执行
+`rollback` 并释放连接。嵌套事务使用 `savepoint`。
 
 ## HTTP 协议
 
-查询请求发送到 `endpoint`。driver 先通过请求头中的 `token` 确认租户访问权限，再通过请求体中的 `key` 定位该租户下的数据库连接：
+`endpoint` 必须是完整的查询地址，例如 `https://example.com/api/query`。driver 先通过请求头中的 `token` 确认租户访问权限，再通过请求体中的 `key` 定位该租户下的数据库连接：
 
 ```http
 POST <endpoint>
@@ -90,28 +89,51 @@ x-db-token: <tenant-access-token>
   "method": "all",
   "params": [1],
   "sql": "select * from users where id = $1",
-  "transaction_id": "optional-uuid"
+  "transaction_id": "optional-transaction-id"
 }
 ```
 
 - `method: "all"`：服务端返回对象行。
 - `method: "values"`：服务端必须按 SQL 列顺序返回数组行，供 Drizzle 完成字段解码。
-- 非事务请求不包含有效的 `transaction_id`。
+- 非事务请求不发送 `transaction_id`；事务请求使用 driver 生成的同一个 id。
 - `x-db-token` 携带租户访问令牌；`key` 只能在该 token 对应的租户范围内解析。
 
-查询响应：
+代理返回统一的成功响应，driver 会解包其中的 `data` 交给 Drizzle：
 
 ```json
 {
-  "command": "SELECT",
-  "fields": [],
-  "oid": 0,
-  "rowCount": 1,
-  "rows": [{ "id": 1 }]
+  "success": true,
+  "data": {
+    "command": "SELECT",
+    "fields": [],
+    "oid": 0,
+    "rowCount": 1,
+    "rows": [{ "id": 1 }],
+    "timing": {
+      "coldStart": false,
+      "startedAt": 1792600000000,
+      "tokenStartedAt": 1792600000001,
+      "dbConfigStartedAt": 1792600000002,
+      "connectionStartedAt": 1792600000004,
+      "connectionEstablishedAt": 1792600000006,
+      "endedAt": 1792600000012
+    }
+  }
 }
 ```
 
-事务结束后，driver 默认向 `${endpoint}/release` 发送：
+任何非 2xx HTTP 状态码都会使整次请求失败。失败响应中的 `error` 会作为
+`DrizzleProxyError` 的错误消息：
+
+```json
+{
+  "success": false,
+  "error": "permission denied for table users"
+}
+```
+
+事务未正常结束时，driver 向 `${endpoint}/release`（即文档中的
+`/api/query/release`）发送：
 
 ```json
 {
@@ -120,20 +142,21 @@ x-db-token: <tenant-access-token>
 }
 ```
 
-release 请求继续使用同一个租户 token 和数据库 key。可通过 `releasePath` 修改追加路径；
-release 接口应释放并删除服务端保存的 connection。
+release 请求继续使用同一个租户 token 和数据库 key。代理即使找不到对应事务，也会返回
+`{ "success": true, "data": null }`；driver 会校验这份统一响应。`commit` 成功后代理已经
+释放连接，driver 不再重复调用 release。
 
-## 自定义传输
+## 请求配置
 
-`DrizzleProxyConfig` 支持自定义 `fetch`、额外 headers、动态租户 token、共享 `requestInit`、序列化与响应解析。默认序列化会把 `bigint` 转成十进制字符串。
+`DrizzleProxyConfig` 支持额外 headers 和共享 `requestInit`。请求固定使用 JSON，序列化时
+会把 `bigint` 转成十进制字符串。
 
 ```ts
-const pool = new DrizzleProxyPool({
-  endpoint: 'https://example.com/drizzle',
-  token: async () => getTenantAccessToken(),
+const client = new DrizzleProxyClient({
+  endpoint: 'https://example.com/api/query',
+  token: process.env.DB_PROXY_TOKEN!,
   key: 'prod',
   headers: { 'x-client-name': 'admin-api' },
-  releasePath: 'release',
 });
 ```
 

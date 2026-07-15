@@ -1,4 +1,4 @@
-export interface DrizzleProxyErrorOptions {
+interface DrizzleProxyErrorOptions {
   body?: unknown;
   cause?: unknown;
   status?: number;

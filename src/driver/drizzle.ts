@@ -1,39 +1,30 @@
-import type {
-  ExtractTablesWithRelations,
-  RelationalSchemaConfig,
-} from 'drizzle-orm/relations';
+import type { ExtractTablesWithRelations, RelationalSchemaConfig } from 'drizzle-orm/relations';
 import type { DrizzleConfig } from 'drizzle-orm/utils';
 
-import { NoopCache } from 'drizzle-orm/cache/core';
 import { DefaultLogger } from 'drizzle-orm/logger';
 import { PgDialect } from 'drizzle-orm/pg-core/dialect';
-import {
-  createTableRelationsHelpers,
-  extractTablesRelationalConfig,
-} from 'drizzle-orm/relations';
+import { createTableRelationsHelpers, extractTablesRelationalConfig } from 'drizzle-orm/relations';
 
 import { HttpPgDatabase } from './database';
 import { HttpPgSession } from './session';
 
-import type { DrizzleProxyPool } from '../http/pool';
+import type { DrizzleProxyClient } from '../http/client';
 
-export type DrizzleHttpDatabase<
+export type DrizzleHttpConfig<
   TSchema extends Record<string, unknown> = Record<string, never>,
-> = HttpPgDatabase<TSchema> & { $client: DrizzleProxyPool };
+> = Omit<DrizzleConfig<TSchema>, 'cache'>;
 
 export const drizzle = <
   TSchema extends Record<string, unknown> = Record<string, never>,
 >(
-  client: DrizzleProxyPool,
-  config: DrizzleConfig<TSchema> = {},
-): DrizzleHttpDatabase<TSchema> => {
+  client: DrizzleProxyClient,
+  config: DrizzleHttpConfig<TSchema> = {},
+): HttpPgDatabase<TSchema> => {
   const dialect = new PgDialect({ casing: config.casing });
   const logger = config.logger === true
     ? new DefaultLogger()
     : (config.logger === false ? undefined : config.logger);
-  let schema: RelationalSchemaConfig<
-    ExtractTablesWithRelations<TSchema>
-  > | undefined;
+  let schema: RelationalSchemaConfig<ExtractTablesWithRelations<TSchema>> | undefined;
 
   if (config.schema) {
     const tablesConfig = extractTablesRelationalConfig(
@@ -47,18 +38,9 @@ export const drizzle = <
     } as RelationalSchemaConfig<ExtractTablesWithRelations<TSchema>>;
   }
 
-  const session = new HttpPgSession(client, dialect, schema, {
-    cache: config.cache ?? new NoopCache(),
-    logger,
-  });
-  const db = new HttpPgDatabase<TSchema>(dialect, session, schema);
-  const database = db as DrizzleHttpDatabase<TSchema>;
-
+  const session = new HttpPgSession(client, dialect, schema, { logger });
+  const database = new HttpPgDatabase<TSchema>(dialect, session, schema);
   database.$client = client;
-  if (config.cache) {
-    const { cache } = config;
-    database.$cache.invalidate = (params) => cache.onMutate(params);
-  }
 
   return database;
 };

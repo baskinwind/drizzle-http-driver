@@ -14,22 +14,21 @@ export class HttpPgTransaction<
 > extends PgTransaction<DrizzleProxyQueryResultHKT, TFullSchema, TSchema> {
   static readonly [entityKind] = 'HttpPgTransaction';
 
+  private readonly txDialect: PgDialect;
+  private readonly txSession: PgSession<DrizzleProxyQueryResultHKT, TFullSchema, TSchema>;
+
   constructor(
-    private readonly txDialect: PgDialect,
-    private readonly txSession: PgSession<
-      DrizzleProxyQueryResultHKT,
-      TFullSchema,
-      TSchema
-    >,
+    txDialect: PgDialect,
+    txSession: PgSession<DrizzleProxyQueryResultHKT, TFullSchema, TSchema>,
     schema: RelationalSchemaConfig<TSchema> | undefined,
     nestedIndex = 0,
   ) {
     super(txDialect, txSession, schema, nestedIndex);
+    this.txDialect = txDialect;
+    this.txSession = txSession;
   }
 
-  async transaction<T>(
-    transaction: (tx: HttpPgTransaction<TFullSchema, TSchema>) => Promise<T>,
-  ) {
+  async transaction<T>(transaction: (tx: HttpPgTransaction<TFullSchema, TSchema>) => Promise<T>) {
     const savepointName = `sp${this.nestedIndex + 1}`;
     const tx = new HttpPgTransaction<TFullSchema, TSchema>(
       this.txDialect,
