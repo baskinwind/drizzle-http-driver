@@ -1,0 +1,318 @@
+{
+  "date": "2026-09-27",
+  "driverVersion": "0.2.0-rc.0",
+  "baseCommit": "a02e75f",
+  "state": "working tree with fixes",
+  "node": "22.22.2",
+  "pnpm": "9.15.4",
+  "drizzleOrm": "0.45.2",
+  "unitTests": {
+    "passed": 8,
+    "failed": 0
+  },
+  "suites": {
+    "postgresql": {
+      "dialect": "postgresql",
+      "fixture": "driver_it_mujf9sga",
+      "passed": 23,
+      "failed": 0,
+      "results": [
+        {
+          "label": "CRUD returning, aliases, nulls, upsert, delete",
+          "passed": true,
+          "ms": 3804
+        },
+        {
+          "label": "prepared placeholders, repeated names and missing-value rejection",
+          "passed": true,
+          "ms": 3340
+        },
+        {
+          "label": "SQL tagged interpolation, literal/comment tokens, reordered $n and JSON ? operator",
+          "passed": true,
+          "ms": 3512
+        },
+        {
+          "label": "duplicate column names and nullable left join use ordered array rows",
+          "passed": true,
+          "ms": 1009
+        },
+        {
+          "label": "relational findMany/findFirst, nested rows and empty results",
+          "passed": true,
+          "ms": 2665
+        },
+        {
+          "label": "CTE, aggregate/count, limit/offset and SQL expression decoding",
+          "passed": true,
+          "ms": 4013
+        },
+        {
+          "label": "timestamp Date mode and timestamptz decoding",
+          "passed": true,
+          "ms": 909
+        },
+        {
+          "label": "date/string timestamp/interval preserve database text and microseconds",
+          "passed": true,
+          "ms": 872
+        },
+        {
+          "label": "numeric/timestamp arrays, bigint and JSON decoding",
+          "passed": true,
+          "ms": 889
+        },
+        {
+          "label": "parameter encoding for Date, bigint, arrays, JSON and null",
+          "passed": true,
+          "ms": 1705
+        },
+        {
+          "label": "transaction commits, pins connection, returns callback value and expires handle",
+          "passed": true,
+          "ms": 2935
+        },
+        {
+          "label": "callback throw rolls back through release and preserves original error",
+          "passed": true,
+          "ms": 1946
+        },
+        {
+          "label": "tx.rollback rolls back all writes",
+          "passed": true,
+          "ms": 1918
+        },
+        {
+          "label": "nested transaction success and savepoint rollback preserve outer transaction",
+          "passed": true,
+          "ms": 5407
+        },
+        {
+          "label": "three nesting levels and inner SQL error recover with savepoint",
+          "passed": true,
+          "ms": 3837
+        },
+        {
+          "label": "outer rollback also rolls back successfully released savepoint",
+          "passed": true,
+          "ms": 2637
+        },
+        {
+          "label": "transaction configuration reaches PostgreSQL",
+          "passed": true,
+          "ms": 4012
+        },
+        {
+          "label": "concurrent transactions remain isolated and release pool capacity",
+          "passed": true,
+          "ms": 5612
+        },
+        {
+          "label": "statement timeout triggers driver rollback and connection recovery",
+          "passed": true,
+          "ms": 5745
+        },
+        {
+          "label": "network loss rolls back and does not replay writes",
+          "passed": true,
+          "ms": 3193
+        },
+        {
+          "label": "lost commit acknowledgement is reported without duplicate replay",
+          "passed": true,
+          "ms": 2124
+        },
+        {
+          "label": "aborted signal still releases and rolls back transaction",
+          "passed": true,
+          "ms": 1903
+        },
+        {
+          "label": "low-level client release is idempotent and rejects later queries",
+          "passed": true,
+          "ms": 661
+        }
+      ]
+    },
+    "mysql": {
+      "fixture": "dh_mujfbh5t",
+      "results": [
+        {
+          "label": "mysql: transaction options protocol rejects invalid requests",
+          "passed": true,
+          "ms": 45
+        },
+        {
+          "label": "mysql: CRUD, auto generated IDs, null, upsert and delete headers",
+          "passed": true,
+          "ms": 5718
+        },
+        {
+          "label": "mysql: prepared repeated placeholders, reuse and missing rejection",
+          "passed": true,
+          "ms": 1600
+        },
+        {
+          "label": "mysql: native binding preserves literal/comment question marks and injection text",
+          "passed": true,
+          "ms": 1705
+        },
+        {
+          "label": "mysql: duplicate labels, left join nullability and ordered rows",
+          "passed": true,
+          "ms": 737
+        },
+        {
+          "label": "mysql: relational findMany/findFirst and empty results",
+          "passed": true,
+          "ms": 3107
+        },
+        {
+          "label": "mysql: CTE, count, limit/offset and expression decoder",
+          "passed": true,
+          "ms": 3316
+        },
+        {
+          "label": "mysql: bigint, exact decimal, JSON, Date and microsecond timestamp roundtrip",
+          "passed": true,
+          "ms": 1594
+        },
+        {
+          "label": "mysql: transaction commits, pins connection, callback result and stale handle",
+          "passed": true,
+          "ms": 2826
+        },
+        {
+          "label": "mysql: callback throw and explicit rollback leave no rows",
+          "passed": true,
+          "ms": 3443
+        },
+        {
+          "label": "mysql: nested success, nested rollback, three levels and SQL error recovery",
+          "passed": true,
+          "ms": 7945
+        },
+        {
+          "label": "mysql: read-only transaction and isolation configuration on pinned connection",
+          "passed": true,
+          "ms": 9388
+        },
+        {
+          "label": "mysql: concurrent transactions and pool reuse",
+          "passed": true,
+          "ms": 3843
+        },
+        {
+          "label": "mysql: timeout destroys connection, rolls back and recovers",
+          "passed": true,
+          "ms": 4334
+        },
+        {
+          "label": "mysql: TCP disconnect rolls back without replay",
+          "passed": true,
+          "ms": 2787
+        },
+        {
+          "label": "mysql: lost commit response never retries writes",
+          "passed": true,
+          "ms": 1938
+        },
+        {
+          "label": "mysql: aborted signal still releases and rolls back transaction",
+          "passed": true,
+          "ms": 1792
+        },
+        {
+          "label": "mysql: release idempotency and post-release rejection",
+          "passed": true,
+          "ms": 519
+        }
+      ]
+    },
+    "oracle": {
+      "fixture": "dh_mujfcxio",
+      "results": [
+        {
+          "label": "oracle: transaction options protocol rejects invalid requests",
+          "passed": true,
+          "ms": 627
+        },
+        {
+          "label": "oracle: SQL tagged CRUD, Unicode and exact numeric result",
+          "passed": true,
+          "ms": 9434
+        },
+        {
+          "label": "oracle: prepared repeated placeholders, reuse, missing rejection and literal tokens",
+          "passed": true,
+          "ms": 6137
+        },
+        {
+          "label": "oracle: ordered duplicate labels and native reordered/repeated binds",
+          "passed": true,
+          "ms": 7349
+        },
+        {
+          "label": "oracle: typed RAW/CLOB/BLOB, timestamp text precision and bigint input",
+          "passed": true,
+          "ms": 8395
+        },
+        {
+          "label": "oracle: commit, pinned session, callback value and stale transaction rejection",
+          "passed": true,
+          "ms": 8007
+        },
+        {
+          "label": "oracle: callback error and tx.rollback remove writes",
+          "passed": true,
+          "ms": 12633
+        },
+        {
+          "label": "oracle: nested savepoint success, rollback, three levels and SQL error recovery",
+          "passed": true,
+          "ms": 14682
+        },
+        {
+          "label": "oracle: outer rollback includes successful nested transaction",
+          "passed": true,
+          "ms": 6950
+        },
+        {
+          "label": "oracle: read-only/isolation settings and invalid combination rejection",
+          "passed": true,
+          "ms": 13470
+        },
+        {
+          "label": "oracle: concurrent transactions remain isolated and release sessions",
+          "passed": true,
+          "ms": 9271
+        },
+        {
+          "label": "oracle: call timeout rolls back a prior write and recovers",
+          "passed": true,
+          "ms": 11119
+        },
+        {
+          "label": "oracle: TCP disconnect rolls back without replay and recovers",
+          "passed": true,
+          "ms": 6008
+        },
+        {
+          "label": "oracle: lost commit response is surfaced without retry and releases session",
+          "passed": true,
+          "ms": 6777
+        },
+        {
+          "label": "oracle: aborted signal still releases and rolls back transaction",
+          "passed": true,
+          "ms": 6459
+        },
+        {
+          "label": "oracle: delete affected rows and empty result",
+          "passed": true,
+          "ms": 10189
+        }
+      ]
+    }
+  }
+}

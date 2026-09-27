@@ -1,10 +1,14 @@
-import type { PgQueryResultHKT } from 'drizzle-orm/pg-core/session';
-import type { Assume } from 'drizzle-orm/utils';
+export interface MySqlTransactionOptions {
+  isolationLevel?: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable';
+  accessMode?: 'read only' | 'read write';
+  withConsistentSnapshot?: boolean;
+}
 
 export type DrizzleProxyQueryMethod = 'all' | 'values';
 
 export interface DrizzleProxyQueryConfig {
   rowMode?: 'array';
+  transactionOptions?: MySqlTransactionOptions;
   text: string;
 }
 
@@ -17,6 +21,7 @@ export interface DrizzleProxyRequest {
   params: unknown[];
   sql: string;
   transaction_id?: string;
+  transaction_options?: MySqlTransactionOptions;
 }
 
 export interface DrizzleProxyReleaseRequest {
@@ -36,12 +41,15 @@ export interface DrizzleProxyTiming {
 }
 
 export interface DrizzleProxyQueryResult<TRow = Record<string, unknown>> {
+  insertId?: number | string;
+  affectedRows?: number;
   command: string;
   fields: unknown[];
   oid: number;
   rowCount: number | null;
   rows: TRow[];
-  timing: DrizzleProxyTiming;
+  /** Present for PostgreSQL/MySQL; Oracle responses omit timing. */
+  timing?: DrizzleProxyTiming;
 }
 
 export interface DrizzleProxyConfig {
@@ -53,7 +61,7 @@ export interface DrizzleProxyConfig {
   key: string;
   /** Additional request headers. */
   headers?: HeadersInit;
-  /** Request options shared by query and release calls. */
+  /** Request options. Release uses an independent 30s signal so cancellation cannot prevent rollback. */
   requestInit?: Omit<RequestInit, 'body' | 'headers' | 'method'>;
 }
 
@@ -62,8 +70,4 @@ export interface DrizzleProxyClientLike {
     query: DrizzleProxyQuery,
     params?: unknown[],
   ): Promise<DrizzleProxyQueryResult<T>>;
-}
-
-export interface DrizzleProxyQueryResultHKT extends PgQueryResultHKT {
-  type: DrizzleProxyQueryResult<Assume<this['row'], Record<string, unknown>>>;
 }

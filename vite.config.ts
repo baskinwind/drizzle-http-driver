@@ -6,8 +6,8 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(import.meta.dirname, 'src/index.ts'),
-      fileName: (format) => format === 'es' ? 'index.js' : 'index.cjs',
+      entry: Object.fromEntries(['index', 'client', 'postgresql', 'mysql', 'oracle'].map(name => [name, resolve(import.meta.dirname, `src/${name}.ts`)])),
+      fileName: (format, name) => `${name}.${format === 'es' ? 'js' : 'cjs'}`,
       formats: ['es', 'cjs'],
     },
     rollupOptions: {
@@ -18,6 +18,7 @@ export default defineConfig({
   plugins: [
     dts({
       entryRoot: 'src',
+      include: ['src/**/*.ts'],
       tsconfigPath: './tsconfig.json',
     }),
   ],

@@ -10,10 +10,11 @@ import type { PgDialect } from 'drizzle-orm/pg-core/dialect';
 import { PgSession } from 'drizzle-orm/pg-core/session';
 import { sql } from 'drizzle-orm/sql';
 
-import { HttpPgPreparedQuery } from './prepared-query';
-import { HttpPgTransaction } from './transaction';
+import { HttpPgPreparedQuery } from './prepared-query.js';
+import { HttpPgTransaction } from './transaction.js';
 
-import type { DrizzleProxyClientLike, DrizzleProxyQueryResult, DrizzleProxyQueryResultHKT } from '../types';
+import type { DrizzleProxyClientLike, DrizzleProxyQueryResult } from '../../types.js';
+import type { DrizzleProxyQueryResultHKT } from './types.js';
 
 interface DrizzleProxyTransactionClient extends DrizzleProxyClientLike {
   release(): Promise<void>;
@@ -47,6 +48,7 @@ export class HttpPgSession<
 > extends PgSession<DrizzleProxyQueryResultHKT, TFullSchema, TSchema> {
   static readonly [entityKind] = 'HttpPgSession';
 
+  private active = true;
   private readonly client: DrizzleProxySessionClient;
   private readonly logger: Logger;
   private readonly options: HttpPgSessionOptions;
@@ -59,10 +61,24 @@ export class HttpPgSession<
     options: HttpPgSessionOptions = {},
   ) {
     super(dialect);
-    this.client = client;
+    this.client = {
+      connect: async () => { this.assertActive(); return client.connect(); },
+      query: async (query, params) => { this.assertActive(); return client.query(query, params); },
+    };
     this.logger = options.logger ?? new NoopLogger();
     this.options = options;
     this.schema = schema;
+  }
+
+  assertActive() {
+    if (!this.active) throw new Error('Cannot query with a completed PostgreSQL transaction');
+  }
+
+  close() { this.active = false; }
+
+  fork() {
+    this.assertActive();
+    return new HttpPgSession<TFullSchema, TSchema>(this.client, this.dialect, this.schema, this.options);
   }
 
   prepareQuery<T extends PreparedQueryConfig = PreparedQueryConfig>(
@@ -113,7 +129,7 @@ export class HttpPgSession<
         throw new AggregateError([error, releaseError], 'Drizzle HTTP transaction and cleanup failed');
       }
       throw error;
-    }
+    } finally { session.close(); }
   }
 
   override async count(query: SQL) {

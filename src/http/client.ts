@@ -1,6 +1,6 @@
-import { request } from './request';
+import { request } from './request.js';
 
-import type { DrizzleProxyConfig, DrizzleProxyQuery, DrizzleProxyQueryMethod, DrizzleProxyQueryResult, DrizzleProxyRequest } from '../types';
+import type { DrizzleProxyConfig, DrizzleProxyQuery, DrizzleProxyQueryMethod, DrizzleProxyQueryResult, DrizzleProxyRequest } from '../types.js';
 
 const getQueryText = (query: DrizzleProxyQuery) => {
   return typeof query === 'string' ? query : query.text;
@@ -48,6 +48,7 @@ export class DrizzleProxyClient {
       key: this.config.key,
       method: getQueryMethod(query),
       params,
+      ...(typeof query !== 'string' && query.transactionOptions ? { transaction_options: query.transactionOptions } : {}),
       sql,
       ...(this.transactionId ? { transaction_id: this.transactionId } : {}),
     };
@@ -61,7 +62,13 @@ export class DrizzleProxyClient {
 
     this.released = true;
     const endpoint = getReleaseEndpoint(this.config.endpoint);
-    this.releasePromise = request<void>(this.config, endpoint, {
+    // Cancellation of an application query must not cancel its rollback too.
+    // Bound cleanup independently so an unreachable proxy cannot hang forever.
+    const cleanupConfig = {
+      ...this.config,
+      requestInit: { ...this.config.requestInit, signal: AbortSignal.timeout(30_000) },
+    };
+    this.releasePromise = request<void>(cleanupConfig, endpoint, {
       key: this.config.key,
       transaction_id: this.transactionId!,
     });

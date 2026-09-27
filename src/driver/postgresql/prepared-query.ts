@@ -8,8 +8,8 @@ import type { Logger } from 'drizzle-orm/logger';
 import { PgPreparedQuery } from 'drizzle-orm/pg-core/session';
 import { fillPlaceholders } from 'drizzle-orm/sql';
 
-import { mapRow } from './map-row';
-import type { DrizzleProxyClientLike } from '../types';
+import { mapRow } from './map-row.js';
+import type { DrizzleProxyClientLike } from '../../types.js';
 
 export class HttpPgPreparedQuery<T extends PreparedQueryConfig> extends PgPreparedQuery<T> {
   static readonly [entityKind] = 'HttpPgPreparedQuery';

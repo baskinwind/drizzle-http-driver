@@ -1,6 +1,6 @@
-import { DrizzleProxyError } from './error';
+import { DrizzleProxyError } from './error.js';
 
-import type { DrizzleProxyConfig, DrizzleProxyReleaseRequest, DrizzleProxyRequest } from '../types';
+import type { DrizzleProxyConfig, DrizzleProxyReleaseRequest, DrizzleProxyRequest } from '../types.js';
 
 const serializeJson = (body: DrizzleProxyReleaseRequest | DrizzleProxyRequest) => {
   return JSON.stringify(body, (_key, value: unknown) => typeof value === 'bigint' ? value.toString() : value);

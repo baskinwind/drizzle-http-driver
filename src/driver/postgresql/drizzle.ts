@@ -5,12 +5,12 @@ import { DefaultLogger } from 'drizzle-orm/logger';
 import { PgDialect } from 'drizzle-orm/pg-core/dialect';
 import { createTableRelationsHelpers, extractTablesRelationalConfig } from 'drizzle-orm/relations';
 
-import { HttpPgDatabase } from './database';
-import { HttpPgSession } from './session';
+import { HttpPgDatabase } from './database.js';
+import { HttpPgSession } from './session.js';
 
-import type { DrizzleProxyClient } from '../http/client';
+import type { DrizzleProxyClient } from '../../http/client.js';
 
-export type DrizzleHttpConfig<
+export type DrizzlePostgresConfig<
   TSchema extends Record<string, unknown> = Record<string, never>,
 > = Omit<DrizzleConfig<TSchema>, 'cache'>;
 
@@ -18,7 +18,7 @@ export const drizzle = <
   TSchema extends Record<string, unknown> = Record<string, never>,
 >(
   client: DrizzleProxyClient,
-  config: DrizzleHttpConfig<TSchema> = {},
+  config: DrizzlePostgresConfig<TSchema> = {},
 ): HttpPgDatabase<TSchema> => {
   const dialect = new PgDialect({ casing: config.casing });
   const logger = config.logger === true
