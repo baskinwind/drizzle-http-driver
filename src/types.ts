@@ -9,6 +9,8 @@ export type DrizzleProxyQueryMethod = 'all' | 'values';
 export interface DrizzleProxyQueryConfig {
   rowMode?: 'array';
   transactionOptions?: MySqlTransactionOptions;
+  /** Execute outside a transaction; requires a proxy supporting transaction_mode. */
+  transactionMode?: 'auto' | 'none';
   text: string;
 }
 
@@ -21,6 +23,7 @@ export interface DrizzleProxyRequest {
   params: unknown[];
   sql: string;
   transaction_id?: string;
+  transaction_mode?: 'auto' | 'none';
   transaction_options?: MySqlTransactionOptions;
 }
 

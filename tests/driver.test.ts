@@ -139,3 +139,16 @@ test('all drivers reject completed outer and nested handles before HTTP', async 
     });
   }
 });
+
+test('explicit nontransactional query sends its mode and rejects a transaction client', async () => {
+  await withTransport(async requests => {
+    const client = new DrizzleProxyClient(options);
+    await client.query({ text: 'VACUUM', transactionMode: 'none' });
+    assert.equal(requests[0].transaction_mode, 'none');
+    assert.equal(requests[0].transaction_id, undefined);
+    const session = await client.connect();
+    await assert.rejects(session.query({ text: 'VACUUM', transactionMode: 'none' }), /Nontransactional/);
+    await assert.rejects(client.query({ text: 'VACUUM', transactionMode: 'none', transactionOptions: {} }), /Nontransactional/);
+    assert.equal(requests.length, 1);
+  });
+});

@@ -44,12 +44,17 @@ export class DrizzleProxyClient {
     const sql = getQueryText(query);
     if (!sql) throw new Error('DB proxy query text is required');
 
+    if (typeof query !== 'string' && query.transactionMode === 'none' && (this.transactionId || query.transactionOptions)) {
+      throw new Error('Nontransactional queries cannot use a transaction session or options');
+    }
+
     const requestBody: DrizzleProxyRequest = {
       key: this.config.key,
       method: getQueryMethod(query),
       params,
       ...(typeof query !== 'string' && query.transactionOptions ? { transaction_options: query.transactionOptions } : {}),
       sql,
+      ...(typeof query !== 'string' && query.transactionMode ? { transaction_mode: query.transactionMode } : {}),
       ...(this.transactionId ? { transaction_id: this.transactionId } : {}),
     };
 

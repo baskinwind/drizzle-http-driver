@@ -314,3 +314,5 @@ PostgreSQL 复用代理仓库的 `server/tests/postgresql/drizzle.ts`，默认�
 支持 `TEST_CASE` 正则过滤和 `TEST_REPORT` JSON 结果路径。单数据库写指定路径；三库聚合运行分别写 `<TEST_REPORT>.<dialect>.json`。报告目录必须存在，完整验收不要设置 `TEST_CASE`。
 
 本轮实际验收结果见 [三库测试报告](docs/test-report-2026-09-27.md)。
+
+显式事务外执行（需先部署支持 transaction_mode 的代理）：`await client.query({ text: 'VACUUM', transactionMode: 'none' })`。只能使用非事务 client，不能同时传 transactionOptions；普通 query 的默认行为保持不变。
